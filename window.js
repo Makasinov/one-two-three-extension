@@ -13,15 +13,18 @@ chrome.storage.local.get(['url', 'image'], (storage) => {
 });
 
 document.getElementById("refresh_button").addEventListener("click", () => {
-    tlog("refresh")
-})
+    tlog("refresh called")
+    chrome.storage.local.get(['url'], ({url}) => {
+        return fetchImage(url)
+    })
+});
 
 document.getElementById("close_button").addEventListener("click", () => {
     chrome.storage.local.set({url: null});
     chrome.storage.local.set({image: null});
     document.getElementById("form_body").style.display = "block"
     document.getElementById("grafana_image").style.display = "none"
-})
+});
 
 document.getElementById("apply_button").addEventListener("click", () => {
     const closeButton = document.getElementById("apply_button")
@@ -35,28 +38,31 @@ document.getElementById("apply_button").addEventListener("click", () => {
     const refreshInterval = document.getElementById("refresh_interval").value
     const timeRange = document.getElementById("time_range").value
     tlog(panelUrl, refreshInterval, timeRange)
-    fetch(panelUrl)
+    return fetchImage(panelUrl)
+});
+
+const fetchImage = (url) => {
+    return fetch(url)
         .then(response => response.arrayBuffer())
         .then(response => arrayBufferToBase64(response))
         .then((base64Img) => {
-            tlog('set src')
             document.getElementById("grafana_image").src = base64Img
             document.getElementById("grafana_image").style.display = "block"
             document.getElementById("form_body").style.display = "none"
-            tlog('set new storage')
+            tlog('set new image and url in local storage')
             try {
-                chrome.storage.local.set({url: panelUrl});
+                chrome.storage.local.set({url});
                 chrome.storage.local.set({image: base64Img});
             } catch(e) {
                 tlog('error set new value to storage', e)
             }
         })
         .catch((e) => console.error(e))
-})
+};
 
 const arrayBufferToBase64 = (buffer) => {
     var binary = '';
     var bytes = [].slice.call(new Uint8Array(buffer));
     bytes.forEach((b) => binary += String.fromCharCode(b));
     return 'data:image/jpeg;base64,' + window.btoa(binary);
-}
+};
