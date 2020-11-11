@@ -1,7 +1,7 @@
 {
-  "name": "Getting Started Example",
+  "name": "Grafana helper",
   "version": "1.0",
-  "description": "Build an Extension!",
+  "description": "Attach panel to browser and open it from every tab",
   "permissions": ["tabs", "<all_urls>", "storage"],
   "background": {
     "scripts": ["main.js"],
