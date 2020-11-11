@@ -52,7 +52,7 @@ document.getElementById("apply_button").addEventListener("click", () => {
     const refreshInterval = document.getElementById("refresh_interval").value
     const timeRange = document.getElementById("time_range").value
     tlog(panelUrl, refreshInterval, timeRange)
-    chrome.runtime.sendMessage({cmd: "new"});
+    chrome.runtime.sendMessage({cmd: "new", interval: refreshInterval, range: timeRange});
     return fetchImage(panelUrl)
         .then(() => {
             closeButton.disabled = false

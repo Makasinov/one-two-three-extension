@@ -8,6 +8,16 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         tlog(request)
         if (request.cmd === "new") {
+            let intervalNumber = 10 * 1000
+            if (request.interval && request.interval.length >= 2) {
+                intervalNumber = Number(request.interval.slice(0, request.interval.length - 1))
+                switch (request.interval.slice(-1)) {
+                    case 'h': intervalNumber *= 60;
+                    case 'm': intervalNumber *= 60;
+                    case 's': intervalNumber *= 1000;
+                }
+                tlog(request.interval, intervalNumber, request.interval.slice(-1))
+            }
             clearInterval(interval)
             interval = setInterval(() => {
                 chrome.storage.local.get(['url'], ({url}) => {
@@ -22,7 +32,7 @@ chrome.runtime.onInstalled.addListener(() => {
                             })
                         })
                 })
-            }, 10 * 1000)
+            }, intervalNumber)
         }
         if (request.cmd === "reset") {
             clearInterval(interval)
