@@ -25,6 +25,9 @@ chrome.storage.local.get(['url', 'image'], (storage) => {
 
 document.getElementById("refresh_button").addEventListener("click", () => {
     chrome.storage.local.get(['url', 'range'], ({url, range}) => {
+        if (!url) {
+            return
+        }
         let timeRange = 3 * 60 * 60 // 3 hour
         if (range && range.length >= 2) {
             timeRange = parseIntervalString(range) * 1000

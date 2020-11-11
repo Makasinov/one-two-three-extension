@@ -10,5 +10,11 @@
   "browser_action": {
     "default_popup": "window.html"
   },
-  "manifest_version": 2
+  "manifest_version": 2,
+  "icons": {
+    "16": "images/gdr_16.png",
+    "32": "images/gdr_32.png",
+    "48": "images/gdr_48.png",
+    "128": "images/gdr_128.png"
+  }
 }
