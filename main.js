@@ -8,13 +8,13 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         tlog(request)
         if (request.cmd === "new") {
-            let intervalNumber = 10 * 1000
+            let intervalNumber = 10
             let rangeNumber = 3 * 60 * 60 * 1000 // 3 hour
             if (request.interval && request.interval.length >= 2) {
                 intervalNumber = parseIntervalString(request.interval)
             }
             if (request.range && request.range.length >= 2) {
-                rangeNumber = parseIntervalString(request.range)
+                rangeNumber = parseIntervalString(request.range) * 1000
             }
             clearInterval(interval)
             interval = setInterval(() => {
@@ -24,13 +24,13 @@ chrome.runtime.onInstalled.addListener(() => {
                         return
                     }
                     url = replaceMacros(url, [
-                        /\$M_FROM/g, Math.floor(Date.now() / 1000) - rangeNumber,
-                        /\$M_TO/g,   Math.floor(Date.now() / 1000),
+                        /\$M_FROM/g, `${Date.now() - rangeNumber}`,
+                        /\$M_TO/g,   `${Date.now()}`,
                     ])
-                    tlog(url)
+                    tlog(url, [request.interval, intervalNumber], [request.range, rangeNumber], )
                     return fetchImage(url)
                         .then(base64Img => {
-                            chrome.storage.local.set({url, image: base64Img}, () => {
+                            chrome.storage.local.set({image: base64Img}, () => {
                                 tlog("new image set in storage")
                             })
                         })

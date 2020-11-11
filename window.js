@@ -25,9 +25,23 @@ chrome.storage.local.get(['url', 'image'], (storage) => {
 });
 
 document.getElementById("refresh_button").addEventListener("click", () => {
-    chrome.storage.local.get(['url'], ({url}) => {
-        tlog('refresh from', url)
+    chrome.storage.local.get(['url', 'range'], ({url, range}) => {
+        let timeRange = 3 * 60 * 60 // 3 hour
+        if (range && range.length >= 2) {
+            timeRange = parseIntervalString(range) * 1000
+        }
+        url = replaceMacros(url, [
+            /\$M_FROM/g, `${Date.now() - timeRange}`,
+            /\$M_TO/g,   `${Date.now()}`,
+        ])
+        tlog(url, [timeRange, range])
         return fetchImage(url)
+            .then((base64image) => {
+                tlog(base64image && base64image.slice(0,25))
+                document.getElementById("grafana_image").src = base64image
+                document.getElementById("form_body").style.display = "none"
+                document.getElementById("grafana_image").style.display = "block"
+            })
     })
 });
 
@@ -56,6 +70,7 @@ document.getElementById("apply_button").addEventListener("click", () => {
     if (timeRange && timeRange.length >= 2) {
         range = parseIntervalString(timeRange) * 1000
     }
+    chrome.storage.local.set({url: panelUrl, range: timeRange});
     panelUrl = replaceMacros(panelUrl, [
         /\$M_FROM/g, `${Date.now() - range}`,
         /\$M_TO/g,   `${Date.now()}`,
@@ -96,11 +111,11 @@ const fetchImage = (url) => {
             document.getElementById("form_body").style.display = "none"
             tlog('set new image and url in local storage')
             try {
-                chrome.storage.local.set({url});
                 chrome.storage.local.set({image: base64Img});
             } catch(e) {
                 tlog('error set new value to storage', e)
             }
+            return base64Img
         })
         .catch((e) => tlog(e))
 };
