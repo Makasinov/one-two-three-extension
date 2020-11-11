@@ -1,55 +1,53 @@
 const tlog = chrome.extension.getBackgroundPage().console.log;
-tlog('Extension id ', chrome.runtime.id);
+tlog('E | Extension id ', chrome.runtime.id);
 
 chrome.runtime.onInstalled.addListener(() => {
     let interval
-    chrome.storage.local.set({url: null});
-    chrome.storage.local.set({image: null});
+    chrome.storage.local.set({url: null, image: null, range: null, interval: null});
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-        tlog(request)
+        tlog('E |', request)
         if (request.cmd === "new") {
             let intervalNumber = 10
-            let rangeNumber = 3 * 60 * 60 * 1000 // 3 hour
             if (request.interval && request.interval.length >= 2) {
                 intervalNumber = parseIntervalString(request.interval)
             }
-            if (request.range && request.range.length >= 2) {
-                rangeNumber = parseIntervalString(request.range) * 1000
-            }
-            clearInterval(interval)
-            interval = setInterval(() => {
-                chrome.storage.local.get(['url'], ({url}) => {
-                    if (!url) {
-                        tlog("no url in local storage")
-                        return
-                    }
-                    url = replaceMacros(url, [
-                        /\$M_FROM/g, `${Date.now() - rangeNumber}`,
-                        /\$M_TO/g,   `${Date.now()}`,
-                    ])
-                    tlog(url, [request.interval, intervalNumber], [request.range, rangeNumber], )
-                    return fetchImage(url)
-                        .then(base64Img => {
-                            chrome.storage.local.set({image: base64Img}, () => {
-                                tlog("new image set in storage")
+            chrome.storage.local.set({url: request.url, range: request.range, interval: request.interval}, () => {
+                clearInterval(interval)
+                interval = setInterval(() => {
+                    chrome.storage.local.get(['url', 'range'], ({url, range}) => {
+                        if (!url) {
+                            tlog("E | no url in local storage, bug probably")
+                            return
+                        }
+                        let rangeNumber = 3 * 60 * 60 * 1000 // 3 hour
+                        if (range && range.length >= 2) {
+                            rangeNumber = parseIntervalString(range) * 1000
+                        }
+                        url = replaceMacros(url, [
+                            /\$M_FROM/g, `${Date.now() - rangeNumber}`,
+                            /\$M_TO/g,   `${Date.now()}`,
+                        ])
+                        tlog(' E |', url)
+                        return fetchImage(url)
+                            .then(base64Img => {
+                                chrome.storage.local.set({image: base64Img}, () => {
+                                    tlog('E | new image', base64Img.slice(-50))
+                                })
                             })
-                        })
-                })
-            }, intervalNumber * 1000)
+                    })
+                }, intervalNumber * 1000)
+            });
         }
         if (request.cmd === "reset") {
             clearInterval(interval)
-            chrome.storage.local.set({url: null});
-            chrome.storage.local.set({image: null});
+            chrome.storage.local.set({url: null, image: null, range: null, interval: null});
         }
     });
 });
 
 const replaceMacros = (str, paramsArray) => {
-    tlog(paramsArray.length)
     for (let it = 0; it <= (paramsArray.length / 2); it += 2) {
-        str.replace(paramsArray[it], it+1)
-        tlog(paramsArray[it], it+1)
+        str = str.replace(paramsArray[it], paramsArray[it+1])
     }
     return str
 }
@@ -58,16 +56,6 @@ const fetchImage = (url) => {
     return fetch(url)
         .then(response => response.arrayBuffer())
         .then(response => arrayBufferToBase64(response))
-        .then((base64Img) => {
-            tlog('set new image and url in local storage')
-            try {
-                chrome.storage.local.set({url});
-                chrome.storage.local.set({image: base64Img});
-            } catch(e) {
-                tlog('error set new value to storage', e)
-            }
-            return base64Img
-        })
         .catch((e) => console.error(e))
 };
 

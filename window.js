@@ -5,7 +5,6 @@ const interval = setInterval(() => {
         if (!image) {
             return
         }
-        tlog('set from cache')
         document.getElementById("grafana_image").src = image
         document.getElementById("grafana_image").style.display = "block"
         document.getElementById("form_body").style.display = "none"
@@ -34,7 +33,7 @@ document.getElementById("refresh_button").addEventListener("click", () => {
             /\$M_FROM/g, `${Date.now() - timeRange}`,
             /\$M_TO/g,   `${Date.now()}`,
         ])
-        tlog(url, [timeRange, range])
+        tlog(url)
         return fetchImage(url)
             .then((base64image) => {
                 tlog(base64image && base64image.slice(0,25))
@@ -65,17 +64,19 @@ document.getElementById("apply_button").addEventListener("click", () => {
     let panelUrl = document.getElementById("panel_url").value
     const refreshInterval = document.getElementById("refresh_interval").value
     let timeRange = document.getElementById("time_range").value
-    chrome.runtime.sendMessage({cmd: "new", interval: refreshInterval, range: timeRange});
+    chrome.runtime.sendMessage({cmd: "new",
+        interval: refreshInterval, range: timeRange,
+        url: panelUrl,
+    });
     let range = 3 * 60 * 60 // 3 hour
     if (timeRange && timeRange.length >= 2) {
         range = parseIntervalString(timeRange) * 1000
     }
-    chrome.storage.local.set({url: panelUrl, range: timeRange});
     panelUrl = replaceMacros(panelUrl, [
         /\$M_FROM/g, `${Date.now() - range}`,
         /\$M_TO/g,   `${Date.now()}`,
     ])
-    tlog(panelUrl, [refreshInterval], [timeRange, range])
+    tlog(panelUrl)
     return fetchImage(panelUrl)
         .then(() => {
             closeButton.disabled = false
@@ -86,9 +87,7 @@ document.getElementById("apply_button").addEventListener("click", () => {
 const replaceMacros = (str, paramsArray) => {
     for (let it = 0; it <= (paramsArray.length / 2); it += 2) {
         str = str.replace(paramsArray[it], paramsArray[it+1])
-        tlog(paramsArray[it], paramsArray[it+1])
     }
-    tlog('replaced str -', str)
     return str
 }
 
@@ -109,7 +108,7 @@ const fetchImage = (url) => {
             document.getElementById("grafana_image").src = base64Img
             document.getElementById("grafana_image").style.display = "block"
             document.getElementById("form_body").style.display = "none"
-            tlog('set new image and url in local storage')
+            tlog('new image', base64Img.slice(-50))
             try {
                 chrome.storage.local.set({image: base64Img});
             } catch(e) {
