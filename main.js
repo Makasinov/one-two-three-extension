@@ -9,14 +9,12 @@ chrome.runtime.onInstalled.addListener(() => {
         tlog(request)
         if (request.cmd === "new") {
             let intervalNumber = 10 * 1000
+            let rangeNumber = 3 * 60 * 60 * 1000 // 3 hour
             if (request.interval && request.interval.length >= 2) {
-                intervalNumber = Number(request.interval.slice(0, request.interval.length - 1))
-                switch (request.interval.slice(-1)) {
-                    case 'h': intervalNumber *= 60;
-                    case 'm': intervalNumber *= 60;
-                    case 's': intervalNumber *= 1000;
-                }
-                tlog(request.interval, intervalNumber, request.interval.slice(-1))
+                intervalNumber = parseIntervalString(request.interval)
+            }
+            if (request.range && request.range.length >= 2) {
+                rangeNumber = parseIntervalString(request.range)
             }
             clearInterval(interval)
             interval = setInterval(() => {
@@ -25,6 +23,11 @@ chrome.runtime.onInstalled.addListener(() => {
                         tlog("no url in local storage")
                         return
                     }
+                    url = replaceMacros(url, [
+                        /\$M_FROM/g, Math.floor(Date.now() / 1000) - rangeNumber,
+                        /\$M_TO/g,   Math.floor(Date.now() / 1000),
+                    ])
+                    tlog(url)
                     return fetchImage(url)
                         .then(base64Img => {
                             chrome.storage.local.set({url, image: base64Img}, () => {
@@ -32,7 +35,7 @@ chrome.runtime.onInstalled.addListener(() => {
                             })
                         })
                 })
-            }, intervalNumber)
+            }, intervalNumber * 1000)
         }
         if (request.cmd === "reset") {
             clearInterval(interval)
@@ -42,7 +45,14 @@ chrome.runtime.onInstalled.addListener(() => {
     });
 });
 
-
+const replaceMacros = (str, paramsArray) => {
+    tlog(paramsArray.length)
+    for (let it = 0; it <= (paramsArray.length / 2); it += 2) {
+        str.replace(paramsArray[it], it+1)
+        tlog(paramsArray[it], it+1)
+    }
+    return str
+}
 
 const fetchImage = (url) => {
     return fetch(url)
@@ -67,6 +77,15 @@ const arrayBufferToBase64 = (buffer) => {
     bytes.forEach((b) => binary += String.fromCharCode(b));
     return 'data:image/jpeg;base64,' + window.btoa(binary);
 };
+
+const parseIntervalString = (intervalString) => {
+    let interval = Number(intervalString.slice(0, intervalString.length - 1))
+    switch (intervalString.slice(-1)) {
+        case 'h': interval *= 60;
+        case 'm': interval *= 60;
+    }
+    return interval
+}
 
 // chrome.tabs.onUpdated.addListener( function (tabId, changeInfo, tab) {
 //         if (changeInfo.status === 'complete') {

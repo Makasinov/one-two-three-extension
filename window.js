@@ -48,17 +48,43 @@ document.getElementById("apply_button").addEventListener("click", () => {
         "</div>"
     closeButton.disabled = true
 
-    const panelUrl = document.getElementById("panel_url").value
+    let panelUrl = document.getElementById("panel_url").value
     const refreshInterval = document.getElementById("refresh_interval").value
-    const timeRange = document.getElementById("time_range").value
-    tlog(panelUrl, refreshInterval, timeRange)
+    let timeRange = document.getElementById("time_range").value
     chrome.runtime.sendMessage({cmd: "new", interval: refreshInterval, range: timeRange});
+    let range = 3 * 60 * 60 // 3 hour
+    if (timeRange && timeRange.length >= 2) {
+        range = parseIntervalString(timeRange) * 1000
+    }
+    panelUrl = replaceMacros(panelUrl, [
+        /\$M_FROM/g, `${Date.now() - range}`,
+        /\$M_TO/g,   `${Date.now()}`,
+    ])
+    tlog(panelUrl, [refreshInterval], [timeRange, range])
     return fetchImage(panelUrl)
         .then(() => {
             closeButton.disabled = false
             closeButton.innerHTML = "Apply"
         })
 });
+
+const replaceMacros = (str, paramsArray) => {
+    for (let it = 0; it <= (paramsArray.length / 2); it += 2) {
+        str = str.replace(paramsArray[it], paramsArray[it+1])
+        tlog(paramsArray[it], paramsArray[it+1])
+    }
+    tlog('replaced str -', str)
+    return str
+}
+
+const parseIntervalString = (intervalString) => {
+    let interval = Number(intervalString.slice(0, intervalString.length - 1))
+    switch (intervalString.slice(-1)) {
+        case 'h': interval *= 60;
+        case 'm': interval *= 60;
+    }
+    return interval
+}
 
 const fetchImage = (url) => {
     return fetch(url)
