@@ -2,7 +2,7 @@
   "name": "Grafana helper",
   "version": "1.0",
   "description": "Attach panel to browser and open it from every tab",
-  "permissions": ["tabs", "<all_urls>", "storage"],
+  "permissions": ["<all_urls>", "storage"],
   "background": {
     "scripts": ["main.js"],
     "persistent": false
