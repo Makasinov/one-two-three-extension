@@ -1,5 +1,17 @@
 const tlog = chrome.extension.getBackgroundPage().console.log;
 
+const interval = setInterval(() => {
+    chrome.storage.local.get(['image'], ({image}) => {
+        if (!image) {
+            return
+        }
+        tlog('set from cache')
+        document.getElementById("grafana_image").src = image
+        document.getElementById("grafana_image").style.display = "block"
+        document.getElementById("form_body").style.display = "none"
+    })
+}, 1000);
+
 chrome.storage.local.get(['url', 'image'], (storage) => {
     tlog(storage)
     if (storage.image) {
@@ -13,17 +25,19 @@ chrome.storage.local.get(['url', 'image'], (storage) => {
 });
 
 document.getElementById("refresh_button").addEventListener("click", () => {
-    tlog("refresh called")
     chrome.storage.local.get(['url'], ({url}) => {
+        tlog('refresh from', url)
         return fetchImage(url)
     })
 });
 
 document.getElementById("close_button").addEventListener("click", () => {
+    clearInterval(interval)
     chrome.storage.local.set({url: null});
     chrome.storage.local.set({image: null});
     document.getElementById("form_body").style.display = "block"
     document.getElementById("grafana_image").style.display = "none"
+    chrome.runtime.sendMessage({cmd: "reset"});
 });
 
 document.getElementById("apply_button").addEventListener("click", () => {
@@ -38,7 +52,12 @@ document.getElementById("apply_button").addEventListener("click", () => {
     const refreshInterval = document.getElementById("refresh_interval").value
     const timeRange = document.getElementById("time_range").value
     tlog(panelUrl, refreshInterval, timeRange)
+    chrome.runtime.sendMessage({cmd: "new"});
     return fetchImage(panelUrl)
+        .then(() => {
+            closeButton.disabled = false
+            closeButton.innerHTML = "Apply"
+        })
 });
 
 const fetchImage = (url) => {
@@ -57,7 +76,7 @@ const fetchImage = (url) => {
                 tlog('error set new value to storage', e)
             }
         })
-        .catch((e) => console.error(e))
+        .catch((e) => tlog(e))
 };
 
 const arrayBufferToBase64 = (buffer) => {
