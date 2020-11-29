@@ -11,15 +11,17 @@ const interval = setInterval(() => {
     })
 }, 1000);
 
-chrome.storage.local.get(['url', 'image'], (storage) => {
+chrome.storage.local.get(['url', 'image', 'prediction'], (storage) => {
     tlog(storage)
     if (storage.image) {
         document.getElementById("grafana_image").src = storage.image
         document.getElementById("form_body").style.display = "none"
         document.getElementById("grafana_image").style.display = "block"
     } else {
+        if (storage.prediction) {
+            document.getElementById("panel_url").value = storage.prediction
+        }
         document.getElementById("form_body").style.display = "block"
-
     }
 });
 

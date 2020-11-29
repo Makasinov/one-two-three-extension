@@ -2,6 +2,15 @@ const tlog = chrome.extension.getBackgroundPage().console.log;
 tlog('E | Extension id ', chrome.runtime.id);
 
 chrome.runtime.onInstalled.addListener(() => {
+    chrome.tabs.onUpdated.addListener((tabId, info) => {
+        if (info.status === 'complete') {
+            chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+                chrome.tabs.executeScript(tabs[0].id, {
+                    file: "injectScript.js",
+                })
+            })
+        }
+    });
     let interval
     chrome.storage.local.set({url: null, image: null, range: null, interval: null});
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
